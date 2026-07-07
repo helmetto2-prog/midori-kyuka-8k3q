@@ -26,6 +26,10 @@
   .search{width:100%;padding:11px 14px;border:2px solid #9dbb9d;border-radius:22px;font-size:16px;
     outline:none;margin-bottom:12px;background:#fff;}
   .search:focus{border-color:var(--g);}
+  .grouptabs{display:flex;gap:8px;margin-bottom:12px;}
+  .grouptabs .gtab{flex:1;padding:11px;border-radius:22px;border:2px solid #9dbb9d;background:#fff;
+    color:var(--g);font-size:15px;font-weight:bold;cursor:pointer;}
+  .grouptabs .gtab.on{background:var(--g);color:#fff;border-color:var(--g);}
   .facegrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
   @media(max-width:380px){.facegrid{grid-template-columns:repeat(3,1fr);}}
   .face{background:#fff;border-radius:12px;padding:8px 4px;text-align:center;cursor:pointer;
@@ -249,7 +253,11 @@
 <section class="screen" id="s1">
   <div class="step">STEP 1 / 3</div>
   <div class="htitle">自分の顔をタップ</div>
-  <input class="search" id="q" placeholder="🔍 名前で探す">
+  <div class="grouptabs">
+    <button class="gtab on" data-g="正社員" onclick="setFaceTab('正社員')">正社員</button>
+    <button class="gtab" data-g="パート" onclick="setFaceTab('パート')">パート</button>
+  </div>
+  <input class="search" id="q" placeholder="🔍 名前で探す（全員から）">
   <div class="facegrid" id="grid"></div>
 </section>
 
@@ -347,7 +355,49 @@ function toast(msg){
 function soon(name){
   toast(`「${name}」は準備中です（この試作は「休み申請」だけ動きます）`);
 }
-const NAMES = ["久米晃平","井上久司","井上瑞季","井村守","佐藤明美","佐野二三夫","倉田眞奈","先砥豊","園部彩","寺田明義","岩瀬隆保","川澄英治","川端護","工藤博文","後藤優季","早見学","林保澄","栗林建男","根釜幸吉","榊原千唐","横山要","水野義政","水野義樹","河合良治","石坂真希","石田龍大","磯村誠","神谷幹夫","福岡孝行","竹内智彦","米田実","西川賢司","都築信彦","鈴木秀夫","鈴木賢二"];
+/* 社員データ（grp=正社員/パート、並び順はユーザー指定） */
+const PEOPLE = [
+  // ── 正社員（指定順） ──
+  {name:"水野義政", grp:"正社員"},
+  {name:"水野義樹", grp:"正社員"},
+  {name:"石田龍大", grp:"正社員"},
+  {name:"井上瑞季", grp:"正社員"},
+  {name:"園部彩",   grp:"正社員"},
+  {name:"後藤優季", grp:"正社員"},
+  {name:"久米晃平", grp:"正社員"},
+  {name:"林保澄",   grp:"正社員"},
+  {name:"榊原千唐", grp:"正社員"},
+  {name:"倉田眞奈", grp:"正社員"},
+  {name:"井村守",   grp:"正社員"},
+  {name:"石坂真希", grp:"正社員"},
+  // ── パート（指定順） ──
+  {name:"栗林建男", grp:"パート"},
+  {name:"井上久司", grp:"パート"},
+  {name:"寺田明義", grp:"パート"},
+  {name:"神谷幹夫", grp:"パート"},
+  {name:"川端護",   grp:"パート"},
+  {name:"川澄英治", grp:"パート"},
+  {name:"鈴木賢二", grp:"パート"},
+  {name:"河合良治", grp:"パート"},
+  {name:"早見学",   grp:"パート"},
+  {name:"米田実",   grp:"パート"},
+  {name:"横山要",   grp:"パート"},
+  {name:"佐野二三夫", grp:"パート"},
+  {name:"都築信彦", grp:"パート"},
+  {name:"西川賢司", grp:"パート"},
+  {name:"先砥豊",   grp:"パート"},
+  {name:"磯村誠",   grp:"パート"},
+  {name:"鈴木秀夫", grp:"パート"},
+  {name:"岩瀬隆保", grp:"パート"},
+  {name:"根釜幸吉", grp:"パート"},
+  {name:"工藤博文", grp:"パート"},
+  {name:"佐藤明美", grp:"パート"},
+  // ── 末尾 ──
+  {name:"福岡孝行", grp:"パート"},   // 休業中（在籍）
+  {name:"竹内智彦", grp:"パート"},   // 新入パート
+];
+const NAMES = PEOPLE.map(p=>p.name);
+let faceTab = "正社員";
 const THRESHOLD = 3; // 同じ日にこの人数以上お休み希望なら「控えて」と促す
 const IMG = n => `顔/${encodeURIComponent(n)}.png`;
 const pad = n => String(n).padStart(2,'0');
@@ -567,18 +617,28 @@ function goBack(){
 
 /* ---------- STEP1: 顔グリッド ---------- */
 const grid = document.getElementById('grid');
+function setFaceTab(g){
+  faceTab = g;
+  document.querySelectorAll('.gtab').forEach(b=>b.classList.toggle('on', b.dataset.g===g));
+  renderGrid();
+}
 function renderGrid(){
   const q = document.getElementById('q').value.trim();
   grid.innerHTML = '';
-  NAMES.forEach(n=>{
+  // 検索中は全員から、通常は選択中タブ（正社員/パート）だけ表示
+  const list = q ? PEOPLE.filter(p=>p.name.includes(q)) : PEOPLE.filter(p=>p.grp===faceTab);
+  list.forEach(p=>{
+    const n = p.name, bal = balOf(n);
     const el = document.createElement('div');
-    el.className = 'face' + (q && !n.includes(q) ? ' hidden':'') + (me===n?' sel':'');
-    const bal = balOf(n);
+    el.className = 'face' + (me===n?' sel':'');
     el.innerHTML = `<img src="${IMG(n)}" alt="${n}" loading="lazy"><span>${n}</span>`
       + `<span class="bal${bal<=3?' low':''}">有給 残り${bal}日</span>`;
     el.onclick = ()=>{ me = n; leaveUnit='1日'; setMe(); enterCal(); };
     grid.appendChild(el);
   });
+  if(!list.length){
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:#8a9a8a;padding:24px;">該当者がいません</div>`;
+  }
 }
 function setMe(){
   const box = document.getElementById('meBox');
