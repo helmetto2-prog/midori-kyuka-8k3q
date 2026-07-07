@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>みどり造園 有給申請</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  :root{--g:#2e5d34;--g2:#3f7d47;--bg:#f0f4ef;--warn:#d9822b;--danger:#c0392b;}
+  body{font-family:"Yu Gothic UI","Hiragino Sans",Meiryo,sans-serif;background:var(--bg);color:#243324;
+    max-width:520px;margin:0 auto;min-height:100vh;position:relative;}
+  header{background:var(--g);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:20;
+    display:flex;align-items:center;gap:10px;}
+  header .back{background:rgba(255,255,255,.2);border:none;color:#fff;width:32px;height:32px;
+    border-radius:50%;font-size:18px;cursor:pointer;display:none;}
+  header h1{font-size:17px;flex:1;}
+  header .me{display:flex;align-items:center;gap:6px;font-size:12px;}
+  header .me img{width:30px;height:30px;border-radius:50%;border:2px solid #fff;object-fit:cover;}
+
+  .screen{display:none;padding:14px;}
+  .screen.active{display:block;}
+  .step{font-size:12px;color:var(--g);font-weight:bold;margin-bottom:4px;}
+  .htitle{font-size:19px;font-weight:bold;margin-bottom:12px;}
+
+  /* --- 顔グリッド --- */
+  .search{width:100%;padding:11px 14px;border:2px solid #9dbb9d;border-radius:22px;font-size:16px;
+    outline:none;margin-bottom:12px;background:#fff;}
+  .search:focus{border-color:var(--g);}
+  .facegrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  @media(max-width:380px){.facegrid{grid-template-columns:repeat(3,1fr);}}
+  .face{background:#fff;border-radius:12px;padding:8px 4px;text-align:center;cursor:pointer;
+    box-shadow:0 1px 4px rgba(0,0,0,.08);border:2px solid transparent;transition:.12s;}
+  .face:active{transform:scale(.95);}
+  .face.sel{border-color:var(--g);background:#eaf3ea;}
+  .face img{width:100%;aspect-ratio:1;border-radius:50%;object-fit:cover;background:#dde;}
+  .face span{display:block;font-size:12px;font-weight:bold;margin-top:5px;}
+  .face .bal{display:block;font-size:10px;color:#5a8a5a;font-weight:normal;margin-top:1px;}
+  .face .bal.low{color:var(--danger);}
+  .face.hidden{display:none;}
+
+  /* --- 有給残り・休暇単位 --- */
+  .balbox{background:#eaf3ea;border-radius:12px;padding:12px 14px;margin-top:12px;font-size:14px;}
+  .balbox .big{font-size:22px;font-weight:bold;color:var(--g);}
+  .balbox .calc{color:#5a6e5a;font-size:13px;margin-top:4px;}
+  .balbox.short{background:#fbe6df;} .balbox.short .big{color:var(--danger);}
+  .unitsel{display:flex;gap:8px;margin-top:12px;}
+  .unitsel button{flex:1;padding:11px;border-radius:22px;border:2px solid #9dbb9d;background:#fff;
+    color:var(--g);font-size:15px;font-weight:bold;cursor:pointer;}
+  .unitsel button.on{background:var(--g);color:#fff;border-color:var(--g);}
+  .unitlabel{font-size:13px;color:#5a6e5a;margin-top:14px;margin-bottom:2px;}
+
+  /* --- 管理者：残日数の編集 --- */
+  .adminlink{display:inline-flex;align-items:center;gap:5px;margin:16px 2px 0;font-size:13px;
+    color:#5a6e5a;cursor:pointer;text-decoration:underline;}
+  .adminnote{background:#fff5e6;border:1px solid #e8d3a6;border-radius:12px;padding:11px 14px;
+    font-size:13px;color:#8a6a20;margin-bottom:14px;line-height:1.5;}
+  .adminrow{display:flex;align-items:center;gap:10px;background:#fff;border-radius:10px;padding:8px 12px;
+    margin-bottom:7px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+  .adminrow img{width:38px;height:38px;border-radius:50%;object-fit:cover;flex:none;}
+  .adminrow .an{flex:1;font-size:14px;font-weight:bold;}
+  .adminrow input{width:70px;padding:8px;border:2px solid #cddccd;border-radius:8px;font-size:15px;
+    text-align:right;}
+  .adminrow .unit{font-size:13px;color:#7a8f7a;}
+
+  /* --- カレンダー --- */
+  .calbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .calbar button{background:#fff;border:2px solid #9dbb9d;color:var(--g);width:40px;height:40px;
+    border-radius:50%;font-size:20px;cursor:pointer;}
+  .calbar .ym{font-size:18px;font-weight:bold;}
+  .cal{background:#fff;border-radius:14px;padding:8px;box-shadow:0 1px 6px rgba(0,0,0,.08);}
+  .cal .dow{display:grid;grid-template-columns:repeat(7,1fr);text-align:center;font-size:11px;
+    color:#7a8f7a;padding:4px 0;font-weight:bold;}
+  .cal .dow .sun{color:#c0392b;} .cal .dow .sat{color:#1e6fbf;}
+  .cal .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+  .day{aspect-ratio:.82;border-radius:8px;padding:2px;display:flex;flex-direction:column;
+    align-items:center;cursor:pointer;position:relative;background:#f6f8f5;overflow:hidden;}
+  .day.empty{background:transparent;cursor:default;}
+  .day.past{opacity:.35;cursor:default;}
+  .day .dnum{font-size:12px;font-weight:bold;align-self:flex-start;padding:1px 4px;}
+  .day.sun .dnum{color:#c0392b;} .day.sat .dnum{color:#1e6fbf;}
+  .day.today{outline:2px solid var(--g);}
+  .day.holiday{background:#fbdada;}
+  .day.holiday .dnum{color:#c0392b;font-weight:bold;}
+  .day.picked{background:var(--g);}
+  .day.picked .dnum{color:#fff;}
+  .day.fromday{background:#dbe8fb;outline:2px solid #1e6fbf;}
+  .day.fromday .dnum{color:#1e6fbf;}
+  .day .wtag{position:absolute;bottom:2px;left:2px;font-size:9px;font-weight:bold;color:#1e6fbf;}
+  .day .evmark{position:absolute;top:0px;right:2px;font-size:12px;font-weight:bold;line-height:1;}
+  .day .evmark.blue{color:#1e6fbf;} .day .evmark.star{color:#e0a500;}
+
+  /* 振替2日付スロット */
+  .slots{display:flex;gap:8px;margin-bottom:10px;}
+  .slot{flex:1;background:#fff;border:2px solid #cddccd;border-radius:12px;padding:8px 10px;
+    cursor:pointer;}
+  .slot.active{border-color:var(--g);background:#eaf3ea;}
+  .slot.active.work{border-color:#1e6fbf;background:#e6f0fb;}
+  .slot .sl{font-size:11px;color:#5a6e5a;}
+  .slot .sv{font-size:15px;font-weight:bold;margin-top:2px;}
+  .slot .sv.empty{color:#b0bcb0;font-weight:normal;}
+  .day .faces{display:flex;flex-wrap:wrap;justify-content:center;gap:1px;margin-top:1px;}
+  .day .faces img{width:15px;height:15px;border-radius:50%;object-fit:cover;border:1px solid #fff;}
+  .day .cnt{position:absolute;bottom:2px;right:3px;font-size:10px;font-weight:bold;
+    background:#8fb478;color:#fff;border-radius:8px;padding:0 5px;line-height:15px;}
+  .day .cnt.work{background:#1e6fbf;}       /* 休日に出勤する人＝青（何人でもOK） */
+  .day .faces img.w{border-color:#1e6fbf;}  /* 出勤者の顔は青ふち */
+  .day.lv3 .cnt{background:#e0a500;}
+  .day.lv3{background:#fff3c4;box-shadow:inset 0 0 0 2px #e0a500;}
+  .day.picked .cnt{background:#fff;color:var(--g);}
+  .callegend{font-size:11px;color:#5a6e5a;margin-top:10px;line-height:1.6;}
+  .callegend b{color:var(--danger);}
+
+  /* --- ボトムシート --- */
+  .ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:40;display:none;}
+  .ov.show{display:block;}
+  .sheet{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;z-index:50;
+    background:#fff;border-radius:18px 18px 0 0;padding:16px 16px 26px;transform:translateY(105%);
+    transition:transform .25s;box-shadow:0 -4px 20px rgba(0,0,0,.3);max-height:82vh;overflow-y:auto;}
+  .sheet.show{transform:translateY(0);}
+  .sheet .grip{width:44px;height:5px;border-radius:3px;background:#ccc;margin:0 auto 12px;}
+  .sheet h3{font-size:18px;margin-bottom:4px;}
+  .sheet .sub{font-size:13px;color:#5a6e5a;margin-bottom:12px;}
+  .offlist{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+  .offlist .o{text-align:center;width:64px;}
+  .offlist .o img{width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid #eaf3ea;}
+  .offlist .o span{display:block;font-size:11px;margin-top:3px;}
+  .offnone{font-size:14px;color:#7a8f7a;padding:8px 0 14px;}
+  .warnbox{background:#fbe6df;border:1px solid #e6b8a6;border-radius:12px;padding:12px 14px;
+    font-size:14px;color:#8a3a20;margin-bottom:14px;line-height:1.5;}
+  .warnbox b{color:var(--danger);}
+  .noticebox{background:#fff5e6;border:1px solid #e8d3a6;border-radius:12px;padding:11px 14px;
+    font-size:13px;color:#8a6a20;margin-bottom:14px;line-height:1.5;}
+
+  .btn{display:block;width:100%;padding:14px;border:none;border-radius:26px;font-size:16px;
+    font-weight:bold;cursor:pointer;}
+  .btn.primary{background:var(--g);color:#fff;}
+  .btn.ghost{background:#eaf3ea;color:var(--g);margin-top:8px;}
+  .btn.warn{background:var(--warn);color:#fff;}
+  .btn:disabled{opacity:.4;}
+
+  /* --- 確認画面 --- */
+  .confcard{background:#fff;border-radius:16px;padding:18px;box-shadow:0 1px 6px rgba(0,0,0,.08);
+    text-align:center;margin-bottom:14px;}
+  .confcard img{width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid #eaf3ea;}
+  .confcard .cn{font-size:20px;font-weight:bold;margin-top:8px;}
+  .confrow{display:flex;justify-content:space-between;padding:12px 4px;border-top:1px solid #eee;
+    font-size:15px;}
+  .confrow .k{color:#5a6e5a;} .confrow .v{font-weight:bold;}
+  textarea{width:100%;border:2px solid #cddccd;border-radius:12px;padding:10px;font-size:15px;
+    font-family:inherit;resize:vertical;min-height:60px;margin-top:6px;}
+
+  /* --- 完了 --- */
+  .done{text-align:center;padding:40px 20px;}
+  .done .ico{font-size:60px;}
+  .done h2{font-size:22px;color:var(--g);margin:12px 0 8px;}
+  .done p{font-size:14px;color:#5a6e5a;line-height:1.7;}
+  .demo{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);z-index:5;
+    background:rgba(0,0,0,.6);color:#fff;font-size:11px;padding:4px 12px;border-radius:12px;}
+
+  /* --- ホーム：タイル型ボタン（既存アプリの見た目を踏襲） --- */
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .tile{cursor:pointer;text-align:center;}
+  .tile:active .picon{transform:scale(.96);}
+  .tile .picon{border-radius:22px;padding:20px 10px 16px;box-shadow:0 3px 8px rgba(0,0,0,.15);
+    transition:.12s;display:flex;flex-direction:column;align-items:center;gap:8px;}
+  .tile .picon svg{width:58px;height:58px;}
+  .tile .picon .tlabel{color:#fff;font-size:22px;font-weight:800;letter-spacing:1px;
+    text-shadow:0 1px 2px rgba(0,0,0,.2);line-height:1.15;}
+  .tile .picon .tlabel small{font-size:15px;}
+  .tile .cap{font-size:13px;color:#3a4a3a;margin-top:7px;display:flex;align-items:center;
+    justify-content:center;gap:4px;}
+  .bg-blue{background:linear-gradient(160deg,#5a9bf0,#2f6fd0);}
+  .bg-red{background:linear-gradient(160deg,#f0685f,#d0392f);}
+  .bg-teal{background:linear-gradient(160deg,#3fc6c6,#1f9ea0);}
+  .homehint{font-size:12px;color:#7a8f7a;margin:14px 2px 0;line-height:1.6;}
+
+  /* --- 下部タブバー（既存アプリ風・見た目のみ） --- */
+  .tabbar{position:sticky;bottom:0;display:flex;background:#fff;border-top:1px solid #e2e8e2;
+    z-index:15;}
+  .tabbar .tab{flex:1;text-align:center;padding:7px 2px 6px;font-size:10px;color:#8a9a8a;
+    cursor:pointer;line-height:1.3;}
+  .tabbar .tab .ti{font-size:19px;display:block;}
+  .tabbar .tab.on{color:var(--g);font-weight:bold;}
+  .toast{position:fixed;bottom:64px;left:50%;transform:translateX(-50%) translateY(10px);
+    background:rgba(40,50,40,.92);color:#fff;font-size:13px;padding:10px 18px;border-radius:22px;
+    max-width:90%;text-align:center;z-index:60;opacity:0;pointer-events:none;transition:.2s;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* --- 合言葉ロック（社内テスト用） --- */
+  .gate{position:fixed;inset:0;background:linear-gradient(160deg,#2e5d34,#173a1c);color:#fff;z-index:500;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;}
+  .gate.hide{display:none;}
+  .gate .lg{font-size:46px;}
+  .gate h2{font-size:22px;}
+  .gate p{font-size:13px;opacity:.85;max-width:280px;}
+  .gate input{width:220px;padding:13px;border-radius:12px;border:none;font-size:18px;text-align:center;}
+  .gate button{padding:12px 34px;border-radius:24px;border:none;background:#fff;color:var(--g);
+    font-weight:bold;font-size:16px;cursor:pointer;}
+  .gate .err{color:#ffe08a;font-size:13px;min-height:18px;}
+
+  /* --- 履歴/承認待ち リスト --- */
+  .list-view .lrow{background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:10px;
+    box-shadow:0 1px 4px rgba(0,0,0,.08);}
+  .list-view .ld{font-size:15px;font-weight:bold;margin-bottom:8px;}
+  .list-view .lfaces{display:flex;flex-wrap:wrap;gap:8px;}
+  .list-view .lf{text-align:center;width:56px;}
+  .list-view .lf img{width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid #eaf3ea;}
+  .list-view .lf span{display:block;font-size:10px;margin-top:2px;}
+  .list-view .lf .st{font-size:9px;color:var(--warn);}
+  .list-view .empty{text-align:center;color:#8a9a8a;padding:40px 0;}
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <div class="lg">🌲</div>
+  <h2>みどり造園 休み申請</h2>
+  <p>社内用です。合言葉を入力してください。（分からない場合は水野まで）</p>
+  <input id="gateInput" type="text" inputmode="text" placeholder="合言葉" autocomplete="off">
+  <div class="err" id="gateErr"></div>
+  <button onclick="checkGate()">入る</button>
+</div>
+
+<header>
+  <button class="back" id="backBtn" onclick="goBack()">‹</button>
+  <h1 id="hTitle">🌲 有給申請</h1>
+  <div class="me" id="meBox" style="display:none;"></div>
+</header>
+
+<!-- 画面0: ホーム（既存アプリのタイル型ボタンを踏襲） -->
+<section class="screen active" id="s0">
+  <div class="tiles" id="tiles"></div>
+  <div class="homehint">※ タイルを押すと、顔をタップして日付を選ぶだけで申請できます。<br>
+    「有給申請」＝有給を使うお休み。「振替希望」＝出勤する日とお休みの日を入れ替える。</div>
+  <div class="adminlink" onclick="openAdmin()">⚙️ 有給残り日数の管理（管理者用）</div>
+</section>
+
+<!-- 画面6: 管理者用 残日数の編集 -->
+<section class="screen" id="s6">
+  <div class="htitle">有給残り日数の管理</div>
+  <div class="adminnote">⚠️ この画面は<b>管理者（経理）だけ</b>が開けます。本番ではLINE WORKSの権限で自動的に制限され、社員は残日数を「見るだけ」になります。<br>ここで入力した日数が各社員の残日数になります。</div>
+  <div id="adminBody"></div>
+  <div style="height:10px;"></div>
+  <button class="btn primary" onclick="saveAdmin()">保存する</button>
+  <button class="btn ghost" onclick="gohome()">もどる</button>
+</section>
+
+<!-- 画面1: 自分を選ぶ -->
+<section class="screen" id="s1">
+  <div class="step">STEP 1 / 3</div>
+  <div class="htitle">自分の顔をタップ</div>
+  <input class="search" id="q" placeholder="🔍 名前で探す">
+  <div class="facegrid" id="grid"></div>
+</section>
+
+<!-- 画面2: 日付を選ぶ（カレンダー） -->
+<section class="screen" id="s2">
+  <div class="step">STEP 2 / 3</div>
+  <div class="htitle" id="s2title">お休みしたい日を選ぶ</div>
+  <div id="pickSlots"></div>
+  <div class="calbar">
+    <button onclick="moveMonth(-1)">‹</button>
+    <div class="ym" id="ym"></div>
+    <button onclick="moveMonth(1)">›</button>
+  </div>
+  <div class="cal">
+    <div class="dow"><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="sat">土</div><div class="sun">日</div></div>
+    <div class="grid" id="calGrid"></div>
+  </div>
+  <div class="callegend" id="callegend"></div>
+</section>
+
+<!-- 画面3: 確認 -->
+<section class="screen" id="s3">
+  <div class="step">STEP 3 / 3</div>
+  <div class="htitle">この内容で申請します</div>
+  <div class="confcard" id="confCard"></div>
+  <div id="confSameDay"></div>
+  <div id="confUnit"></div>
+  <div id="confBal"></div>
+  <div class="confrow"><span class="k">理由（任意）</span></div>
+  <textarea id="reason" placeholder="例：私用のため（空欄でもOK）"></textarea>
+  <div style="height:14px;"></div>
+  <button class="btn primary" onclick="submit()">この内容で申請する</button>
+  <button class="btn ghost" onclick="show('s2')">日付を選び直す</button>
+</section>
+
+<!-- 画面5: 承認待ち／履歴リスト -->
+<section class="screen list-view" id="s5">
+  <div class="htitle" id="listTitle"></div>
+  <div id="listBody"></div>
+</section>
+
+<!-- 完了 -->
+<section class="screen" id="s4">
+  <div class="done">
+    <div class="ico">🌿</div>
+    <h2>申請しました！</h2>
+    <p id="doneMsg"></p>
+    <div style="height:20px;"></div>
+    <button class="btn primary" onclick="reset()">最初にもどる</button>
+  </div>
+</section>
+
+<div class="ov" id="ov" onclick="closeSheet()"></div>
+<div class="sheet" id="sheet">
+  <div class="grip"></div>
+  <div id="sheetBody"></div>
+</div>
+
+<nav class="tabbar" id="tabbar">
+  <div class="tab" onclick="soon('タイムライン')"><span class="ti">📋</span>タイムライン</div>
+  <div class="tab on" onclick="gohome()"><span class="ti">🗓️</span>休み申請</div>
+  <div class="tab" onclick="soon('運転チェック')"><span class="ti">🚚</span>運転チェック</div>
+  <div class="tab" onclick="soon('経費申請')"><span class="ti">💴</span>経費申請</div>
+  <div class="tab" onclick="soon('情報共有')"><span class="ti">💡</span>情報共有</div>
+  <div class="tab" onclick="soon('連絡関係')"><span class="ti">📇</span>連絡関係</div>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<div class="demo">試作デモ（申請データはこの端末に仮保存）</div>
+
+<script>
+/* ===== 合言葉ロック（社内テスト用・変えたい時はこの1語を書き換え） ===== */
+const GATE_CODE = "みどり";
+if(sessionStorage.getItem('gateOK')==='1') document.getElementById('gate').classList.add('hide');
+function checkGate(){
+  const v = document.getElementById('gateInput').value.trim();
+  if(v === GATE_CODE){
+    sessionStorage.setItem('gateOK','1');
+    document.getElementById('gate').classList.add('hide');
+  } else {
+    document.getElementById('gateErr').textContent = '合言葉が違います';
+  }
+}
+document.getElementById('gateInput').addEventListener('keydown', e=>{ if(e.key==='Enter') checkGate(); });
+
+let toastT = null;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+function soon(name){
+  toast(`「${name}」は準備中です（この試作は「休み申請」だけ動きます）`);
+}
+const NAMES = ["久米晃平","井上久司","井上瑞季","井村守","佐藤明美","佐野二三夫","倉田眞奈","先砥豊","園部彩","寺田明義","岩瀬隆保","川澄英治","川端護","工藤博文","後藤優季","早見学","林保澄","栗林建男","根釜幸吉","榊原千唐","横山要","水野義政","水野義樹","河合良治","石坂真希","石田龍大","磯村誠","神谷幹夫","福岡孝行","竹内智彦","米田実","西川賢司","都築信彦","鈴木秀夫","鈴木賢二"];
+const THRESHOLD = 3; // 同じ日にこの人数以上お休み希望なら「控えて」と促す
+const IMG = n => `顔/${encodeURIComponent(n)}.png`;
+const pad = n => String(n).padStart(2,'0');
+const key = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+/* ---------- 会社カレンダー（2026年度・紙カレンダーの赤い日＝会社の休み） ----------
+   ※9月・3月・4月は紙の（日数）表記と数えた休みが合わないため要確認
+   ※4/15・16は変更の可能性あり／1〜4月は交代で土曜出勤（振替休）あり */
+const HOLIDAY_TABLE = {
+  '2026-05': [2,3,4,5,6,9,10,16,17,23,24,30,31],
+  '2026-06': [13,14,20,21,27,28],
+  '2026-07': [4,5,12,18,19,25,26],
+  '2026-08': [1,2,8,9,10,11,12,13,14,15,16,22,23,29,30],
+  '2026-09': [5,6,13,19,20,27],
+  '2026-10': [3,4,11,17,18,25,31],
+  '2026-11': [1,8,14,15,22,28,29],
+  '2026-12': [6,12,13,20,27,28,29,30,31],
+  '2027-01': [1,2,3,4,5,6,9,10,16,17,24,30,31],
+  '2027-02': [6,7,13,14,20,21,27,28],
+  '2027-03': [6,7,13,14,20,21,27,28],
+  '2027-04': [3,4,10,11,15,16,17,18,24,25,29,30],
+};
+const isHoliday = k => (HOLIDAY_TABLE[k.slice(0,7)]||[]).includes(+k.slice(8));
+
+/* ---------- 会社行事（有休・振替先で避けてほしい日） ----------
+   □=会議（毎月第一月曜／自動計算・会社の休みなら無し）
+   ○=健康診断（5/8 安全大会・健康診断）  ☆=行事（新年会・大掃除） */
+const SPECIAL_EVENTS = {
+  '2026-05-08': {mark:'○', label:'安全大会・健康診断'},
+  '2026-12-26': {mark:'☆', label:'大掃除'},
+  '2027-01-07': {mark:'☆', label:'新年会'},
+};
+function eventOf(k){
+  if(SPECIAL_EVENTS[k]) return SPECIAL_EVENTS[k];
+  const [y,m,d] = k.split('-').map(Number);
+  const firstMon = 1 + ((1 - new Date(y,m-1,1).getDay() + 7) % 7); // その月の第一月曜
+  if(d===firstMon && !isHoliday(k)) return {mark:'□', label:'会議'};
+  return null;
+}
+
+const TODAY = new Date(2026,6,7); // 2026-07-07（試作の基準日）
+let viewY = TODAY.getFullYear(), viewM = TODAY.getMonth();
+let me = null, appType = "有給申請", leaveUnit = "1日";
+let pickedOff = null;    // お休みにする日（有給・振替希望とも）
+let pickedFrom = null;   // 振替希望の振替元＝出勤する日
+let pickPhase = 'off';   // 振替希望のとき 'from'→'off' の順に選ぶ
+
+// 有給残り日数（本番は経理だけが編集。ここでは端末に仮保存）
+const consumes = t => (t==='有給申請'); // 有給だけ残日数を消費。振替希望は消費しない
+function loadBal(){
+  const s = localStorage.getItem('yukyuBalance');
+  if(s) return JSON.parse(s);
+  const b = {};
+  NAMES.forEach((n,i)=>{ b[n] = [20,12,40,8,15,25,6,18,30,10,22,14][i%12]; });
+  localStorage.setItem('yukyuBalance', JSON.stringify(b));
+  return b;
+}
+let BAL = loadBal();
+const saveBal = () => localStorage.setItem('yukyuBalance', JSON.stringify(BAL));
+const balOf = n => (BAL[n] ?? 0);
+const unitDays = () => (leaveUnit==='半日' ? 0.5 : 1);
+
+/* ---------- ホーム：タイル（既存アプリのボタンを踏襲） ---------- */
+const calSvg = (badge, sym, sub) => `
+  <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <rect x="17" y="6" width="5" height="11" rx="2.5" fill="#fff"/>
+    <rect x="42" y="6" width="5" height="11" rx="2.5" fill="#fff"/>
+    <rect x="8" y="12" width="48" height="44" rx="7" fill="#fff"/>
+    <rect x="8" y="12" width="48" height="12" rx="7" fill="#dfe6ef"/>
+    <g fill="#c7d2e0"><circle cx="19" cy="33" r="3"/><circle cx="32" cy="33" r="3"/><circle cx="45" cy="33" r="3"/>
+    <circle cx="19" cy="44" r="3"/><circle cx="32" cy="44" r="3"/></g>
+    <circle cx="46" cy="45" r="13" fill="${badge}"/>
+    <text x="46" y="${sub?50:51}" font-size="${sub?15:16}" font-weight="bold" text-anchor="middle" fill="#fff">${sym}</text>
+  </svg>`;
+const checkSvg = `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="30" cy="28" r="20" fill="#fff"/>
+  <path d="M21 28 l7 7 l14 -15" stroke="#2fa84f" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="48" cy="46" r="11" fill="#fff"/><path d="M48 40 v6 l4 3" stroke="#d0392f" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
+const listSvg = `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <rect x="10" y="12" width="40" height="34" rx="5" fill="#fff"/>
+  <g stroke="#7fb0b0" stroke-width="3" stroke-linecap="round"><line x1="18" y1="22" x2="42" y2="22"/><line x1="18" y1="30" x2="42" y2="30"/><line x1="18" y1="38" x2="34" y2="38"/></g>
+  <circle cx="48" cy="46" r="11" fill="#fff"/><path d="M48 40 v6 l4 3" stroke="#1f9ea0" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
+
+const TILES = [
+  {label:'有給申請', bg:'bg-blue', icon:calSvg('#f0a020','¥'), cap:'有休申請をする', act:()=>openFlow('有給申請')},
+  {label:'振替希望', bg:'bg-blue', icon:calSvg('#f5c518','⇄'), cap:'振替の休みを申請する', act:()=>openFlow('振替希望')},
+  {label:'承認待ち', bg:'bg-red', icon:checkSvg, cap:'承認待ちを見る', act:()=>openList('承認待ち')},
+  {label:'履歴', bg:'bg-teal', icon:listSvg, cap:'申請の履歴を見る', act:()=>openList('履歴')},
+];
+function renderTiles(){
+  const t = document.getElementById('tiles'); t.innerHTML='';
+  TILES.forEach(x=>{
+    const el = document.createElement('div');
+    el.className = 'tile';
+    el.innerHTML = `<div class="picon ${x.bg}">${x.icon}<div class="tlabel">${x.label}</div></div>
+      <div class="cap">📋 ${x.cap}</div>`;
+    el.onclick = x.act;
+    t.appendChild(el);
+  });
+}
+function gohome(){ show('s0'); }
+function openFlow(type){
+  appType = type; me=null; pickedOff=null; pickedFrom=null; leaveUnit='1日';
+  pickPhase = (type==='振替希望') ? 'from' : 'off';
+  document.getElementById('q').value='';
+  renderGrid(); show('s1');
+}
+function enterCal(){   // s1で顔を選んだ後にs2へ入る
+  pickPhase = (appType==='振替希望') ? 'from' : 'off';
+  pickedOff = null; pickedFrom = null;
+  document.getElementById('s2title').textContent =
+    (appType==='振替希望') ? '振替：出勤日とお休みの日を選ぶ' : 'お休みしたい日を選ぶ';
+  renderSlots(); renderLegend(); renderCal();
+  show('s2');
+}
+function renderSlots(){
+  const el = document.getElementById('pickSlots');
+  const fmt = k => { if(!k) return null; const [y,m,d]=k.split('-').map(Number); const wd=['日','月','火','水','木','金','土'][new Date(y,m-1,d).getDay()]; return `${m}/${d}(${wd})`; };
+  if(appType!=='振替希望'){ el.innerHTML=''; return; }
+  const f=fmt(pickedFrom), o=fmt(pickedOff);
+  el.innerHTML = `<div class="slots">
+    <div class="slot ${pickPhase==='from'?'active work':''}" onclick="setPhase('from')">
+      <div class="sl">① 出勤する日（振替元）</div>
+      <div class="sv ${f?'':'empty'}">${f||'カレンダーで選ぶ'}</div></div>
+    <div class="slot ${pickPhase==='off'?'active':''}" onclick="setPhase('off')">
+      <div class="sl">② お休みにする日</div>
+      <div class="sv ${o?'':'empty'}">${o||'カレンダーで選ぶ'}</div></div>
+  </div>`;
+}
+function setPhase(p){ pickPhase=p; renderSlots(); renderLegend(); }
+function renderLegend(){
+  const el = document.getElementById('callegend');
+  const holNote = `・<b style="color:#c0392b">赤い数字の日＝会社の休み</b>（2026年度カレンダーより）`;
+  const evNote = `・<b style="color:#1e6fbf">□会議</b>・<b style="color:#1e6fbf">○健康診断</b>・<b style="color:#e0a500">☆行事</b>（新年会/大掃除）の日は、有休・お休みを<b>避けて</b>ください。`;
+  if(appType==='振替希望'){
+    el.innerHTML = pickPhase==='from'
+      ? `<b style="color:#1e6fbf">① 出勤する日（振替元）</b>＝<b style="color:#c0392b">会社の休み（赤い日）</b>から選んでタップ。<br>・<b style="color:#1e6fbf">青いバッジ</b>＝その日に出勤する人（何人でもOK）。`
+      : `<b style="color:#2e5d34">② お休みにする日</b>＝出勤日（白い日）からタップ。<br>${holNote}<br>${evNote}<br>・丸い顔＝その日に休む人。<b style="color:#c99a00">黄色い日</b>は3人以上休みなので、できれば別の日に。`;
+  } else {
+    el.innerHTML = `${holNote}（有給はいりません）<br>${evNote}<br>
+      ・日付の中の丸い顔＝その日にお休み希望の人です。<br>
+      ・<b style="color:#c99a00">黄色い日</b>はすでに3人以上がお休み希望。できれば別の日にご検討ください。`;
+  }
+}
+function openList(kind){
+  const upcoming = Object.keys(REQ).filter(k=>k>=key(TODAY)).sort();
+  const body = document.getElementById('listBody');
+  document.getElementById('listTitle').textContent =
+    kind==='承認待ち' ? '承認待ちの申請' : '申請の履歴';
+  if(!upcoming.length){ body.innerHTML = `<div class="empty">まだ申請がありません。</div>`; }
+  else {
+    body.innerHTML = upcoming.map(k=>{
+      const [y,m,d] = k.split('-').map(Number);
+      const wd = ['日','月','火','水','木','金','土'][new Date(y,m-1,d).getDay()];
+      const faces = REQ[k].map(n=>`<div class="lf"><img src="${IMG(n)}"><span>${n}</span>
+        <span class="st">${kind==='承認待ち'?'承認待ち':'受付済'}</span></div>`).join('');
+      return `<div class="lrow"><div class="ld">${m}月${d}日（${wd}）　${REQ[k].length}名</div>
+        <div class="lfaces">${faces}</div></div>`;
+    }).join('');
+  }
+  show('s5');
+}
+
+// お休み希望データ { "2026-07-15":["名前",...] }。初回はサンプルを投入。
+function loadReq(){
+  const s = localStorage.getItem('yukyuReq');
+  if(s) return JSON.parse(s);
+  const seed = {
+    "2026-07-10":["佐藤明美","石坂真希"],
+    "2026-07-15":["井上久司","川端護","横山要","根釜幸吉"],
+    "2026-07-17":["水野義樹"],
+    "2026-07-22":["園部彩","倉田眞奈","井上瑞季"],
+    "2026-07-24":["竹内智彦","佐野二三夫"],
+    "2026-07-31":["神谷幹夫"]
+  };
+  localStorage.setItem('yukyuReq', JSON.stringify(seed));
+  return seed;
+}
+let REQ = loadReq();
+const saveReq = () => localStorage.setItem('yukyuReq', JSON.stringify(REQ));
+const offOn = d => REQ[d] || [];
+
+// 振替出勤データ（会社の休みに出勤する人）{ "2026-07-19":["名前",...] }。人数制限なし。
+function loadWork(){
+  const s = localStorage.getItem('yukyuWork');
+  if(s) return JSON.parse(s);
+  const seed = {   // 会社の休み(赤い日)に出勤＝何人でもOK（青）
+    "2026-07-19":["横山要","川端護","井上久司","根釜幸吉","神谷幹夫"],
+    "2026-07-12":["水野義樹","石田龍大"]
+  };
+  localStorage.setItem('yukyuWork', JSON.stringify(seed));
+  return seed;
+}
+let WORK = loadWork();
+const saveWork = () => localStorage.setItem('yukyuWork', JSON.stringify(WORK));
+const workOn = d => WORK[d] || [];
+
+/* ---------- 画面遷移 ---------- */
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+  const back = document.getElementById('backBtn');
+  back.style.display = (id==='s0'||id==='s4') ? 'none' : 'block';
+  const titles = {s0:'🌲 みどり 休み申請', s1:appType, s2:appType+'・日付', s3:appType+'の確認',
+    s4:'完了', s5:'休み申請', s6:'残日数の管理'};
+  document.getElementById('hTitle').textContent = titles[id];
+  document.getElementById('meBox').style.display = (me && (id==='s2'||id==='s3')) ? 'flex':'none';
+  document.getElementById('tabbar').style.display = (id==='s0'||id==='s5') ? 'flex':'none';
+}
+function goBack(){
+  const cur = document.querySelector('.screen.active').id;
+  if(cur==='s1'||cur==='s5'||cur==='s6') show('s0');
+  else if(cur==='s2') show('s1');
+  else if(cur==='s3') show('s2');
+}
+
+/* ---------- STEP1: 顔グリッド ---------- */
+const grid = document.getElementById('grid');
+function renderGrid(){
+  const q = document.getElementById('q').value.trim();
+  grid.innerHTML = '';
+  NAMES.forEach(n=>{
+    const el = document.createElement('div');
+    el.className = 'face' + (q && !n.includes(q) ? ' hidden':'') + (me===n?' sel':'');
+    const bal = balOf(n);
+    el.innerHTML = `<img src="${IMG(n)}" alt="${n}" loading="lazy"><span>${n}</span>`
+      + `<span class="bal${bal<=3?' low':''}">有給 残り${bal}日</span>`;
+    el.onclick = ()=>{ me = n; leaveUnit='1日'; setMe(); enterCal(); };
+    grid.appendChild(el);
+  });
+}
+function setMe(){
+  const box = document.getElementById('meBox');
+  box.innerHTML = `<img src="${IMG(me)}"><span>${me}さん</span>`;
+}
+document.getElementById('q').addEventListener('input', renderGrid);
+
+/* ---------- STEP2: カレンダー ---------- */
+function moveMonth(d){
+  viewM += d;
+  if(viewM<0){viewM=11;viewY--;} if(viewM>11){viewM=0;viewY++;}
+  renderCal();
+}
+function renderCal(){
+  document.getElementById('ym').textContent = `${viewY}年 ${viewM+1}月`;
+  const g = document.getElementById('calGrid'); g.innerHTML='';
+  const first = (new Date(viewY,viewM,1).getDay()+6)%7; // 月曜始まり
+  const days = new Date(viewY,viewM+1,0).getDate();
+  const todayKey = key(TODAY);
+  for(let i=0;i<first;i++){ const e=document.createElement('div'); e.className='day empty'; g.appendChild(e); }
+  for(let d=1;d<=days;d++){
+    const date = new Date(viewY,viewM,d);
+    const k = key(date);
+    const dow = date.getDay();
+    const off = offOn(k);
+    const past = k < todayKey;
+    const cell = document.createElement('div');
+    const isFrom = (k===pickedFrom);
+    const hol = isHoliday(k);
+    const work = workOn(k);                 // 休日に出勤する人（青・制限なし）
+    const showList = hol ? work : off;      // 休日は出勤者、平日はお休み者を表示
+    const overLimit = (!hol && off.length>=THRESHOLD); // 3人ルールは平日のお休みだけ
+    cell.className = 'day' + (dow===0?' sun':dow===6?' sat':'')
+      + (hol?' holiday':'') + (overLimit?' lv3':'') + (k===todayKey?' today':'')
+      + (past?' past':'') + (k===pickedOff?' picked':'') + (isFrom?' fromday':'');
+    const ev = eventOf(k);
+    let faces = showList.slice(0,3).map(n=>`<img src="${IMG(n)}" alt="${n}"${hol?' class="w"':''}>`).join('');
+    cell.innerHTML = `<span class="dnum">${d}</span><div class="faces">${faces}</div>`
+      + (showList.length?`<span class="cnt${hol?' work':''}">${showList.length}</span>`:'')
+      + (isFrom?`<span class="wtag">出勤</span>`:'')
+      + (ev?`<span class="evmark ${ev.mark==='☆'?'star':'blue'}" title="${ev.label}">${ev.mark}</span>`:'');
+    if(!past) cell.onclick = ()=>onDayTap(k, date);
+    g.appendChild(cell);
+  }
+}
+
+/* ---------- 日付タップ ---------- */
+function onDayTap(k, date){
+  // 振替希望の①出勤日（振替元）を選ぶ段階＝会社の休み（赤い日）だけ
+  if(appType==='振替希望' && pickPhase==='from'){
+    if(!isHoliday(k)){
+      toast('① 出勤する日（振替元）は、会社の休み（赤い日）から選んでください'); return;
+    }
+    pickedFrom = k; pickPhase='off';
+    renderCal(); renderSlots(); renderLegend();
+    toast('出勤する日を選びました。次に「お休みにする日」を選んでください');
+    return;
+  }
+  // お休みにする日＝出勤日（白い日）だけ
+  if(isHoliday(k)){
+    toast('この日はもともと会社の休みです。別の日を選んでください'); return;
+  }
+  if(appType==='振替希望' && k===pickedFrom){
+    toast('出勤する日と同じ日はお休みにできません'); return;
+  }
+  openDay(k, date);
+}
+/* ---------- 日付タップ→ボトムシート（顔が出る） ---------- */
+function openDay(k, date){
+  const off = offOn(k).filter(n=>n!==me);
+  const wd = ['日','月','火','水','木','金','土'][date.getDay()];
+  const isFull = off.length >= THRESHOLD;
+  const okLabel = (appType==='振替希望') ? 'この日を休みにする' : 'この日に申請する';
+  const ev = eventOf(k);
+  let html = `<h3>${date.getMonth()+1}月${date.getDate()}日（${wd}）</h3>`;
+  if(ev){
+    html += `<div class="warnbox">📌 この日は <b>【${ev.label}】</b> の日です。<br>
+      できれば有休・お休みは<b>避けて</b>もらえると助かります。</div>`;
+  }
+  html += `<div class="sub">この日にお休み希望の人</div>`;
+  if(off.length){
+    html += `<div class="offlist">` + off.map(n=>
+      `<div class="o"><img src="${IMG(n)}"><span>${n}</span></div>`).join('') + `</div>`;
+  } else {
+    html += `<div class="offnone">まだ誰もいません。</div>`;
+  }
+  if(isFull){
+    html += `<div class="warnbox">⚠️ この日はすでに <b>${off.length}名</b> がお休み希望です。<br>
+      人手が少なくなるため、できれば<b>別の日</b>をご検討ください。</div>`;
+    html += `<button class="btn warn" onclick="pick('${k}')">それでも ${okLabel}</button>`;
+    html += `<button class="btn ghost" onclick="closeSheet()">別の日にする</button>`;
+  } else if(off.length === THRESHOLD-1){
+    html += `<div class="noticebox">この日はあなたで <b>${off.length+1}人目</b> です。次の人からはお休みを控えてもらう目安になります。</div>`;
+    html += `<button class="btn primary" onclick="pick('${k}')">${okLabel}</button>`;
+  } else {
+    html += `<button class="btn primary" onclick="pick('${k}')">${okLabel}</button>`;
+  }
+  document.getElementById('sheetBody').innerHTML = html;
+  document.getElementById('ov').classList.add('show');
+  document.getElementById('sheet').classList.add('show');
+}
+function closeSheet(){
+  document.getElementById('ov').classList.remove('show');
+  document.getElementById('sheet').classList.remove('show');
+}
+function pick(k){
+  pickedOff = k; closeSheet(); renderCal(); renderConf(); show('s3');
+}
+
+/* ---------- STEP3: 確認 ---------- */
+const fmtDate = k => { const [y,m,d]=k.split('-').map(Number); const wd=['日','月','火','水','木','金','土'][new Date(y,m-1,d).getDay()]; return `${y}年${m}月${d}日（${wd}）`; };
+function renderConf(){
+  const off = offOn(pickedOff).filter(n=>n!==me);
+  document.getElementById('confCard').innerHTML =
+    `<img src="${IMG(me)}"><div class="cn">${me}さん</div>
+     <div style="font-size:13px;color:#5a6e5a;margin-top:2px;">申請種別：${appType}</div>`;
+  let same = '';
+  if(appType==='振替希望'){
+    same += `<div class="confrow"><span class="k">① 出勤する日（振替元）</span><span class="v" style="color:#1e6fbf">${fmtDate(pickedFrom)}</span></div>`;
+    same += `<div class="confrow"><span class="k">② お休みにする日</span><span class="v">${fmtDate(pickedOff)}</span></div>`;
+  } else {
+    same += `<div class="confrow"><span class="k">お休みする日</span><span class="v">${fmtDate(pickedOff)}</span></div>`;
+  }
+  if(off.length){
+    same += `<div class="confrow"><span class="k">同じ日の休み</span><span class="v">${off.length}名</span></div>`;
+    same += `<div class="offlist" style="margin-top:10px">` + off.map(n=>
+      `<div class="o"><img src="${IMG(n)}"><span>${n}</span></div>`).join('') + `</div>`;
+    if(off.length>=THRESHOLD)
+      same = `<div class="warnbox" style="margin-top:12px">⚠️ この日はすでに${off.length}名がお休み希望です。人手にご配慮ください。</div>` + same;
+  }
+  document.getElementById('confSameDay').innerHTML = same;
+  renderUnitBal();
+}
+function setUnit(u){ leaveUnit = u; renderUnitBal(); }
+function renderUnitBal(){
+  const uEl = document.getElementById('confUnit');
+  const bEl = document.getElementById('confBal');
+  if(!consumes(appType)){  // 振替希望は有給を消費しない
+    uEl.innerHTML = '';
+    bEl.innerHTML = `<div class="balbox">この申請（振替希望）は<b>有給を使いません</b>。残り日数は減りません。</div>`;
+    return;
+  }
+  uEl.innerHTML = `<div class="unitlabel">休暇単位</div>
+    <div class="unitsel">
+      <button class="${leaveUnit==='1日'?'on':''}" onclick="setUnit('1日')">1日</button>
+      <button class="${leaveUnit==='半日'?'on':''}" onclick="setUnit('半日')">半日（0.5日）</button>
+    </div>`;
+  const cur = balOf(me), use = unitDays(), after = cur - use;
+  const short = (appType==='有給申請' && after < 0);
+  bEl.innerHTML = `<div class="balbox${short?' short':''}">
+    <div>${me}さんの有給　<span class="big">残り ${cur}日</span></div>
+    <div class="calc">この申請で −${use}日 → 申請後 <b>${after}日</b></div>
+    ${short?`<div class="calc" style="color:#c0392b">⚠️ 残りが足りません。取得できる日数を超えています。</div>`:''}
+  </div>`;
+}
+
+function submit(){
+  // 有給申請で残日数が足りなければ止める
+  if(appType==='有給申請' && balOf(me) - unitDays() < 0){
+    alert(`${me}さんの有給残りは${balOf(me)}日です。取得できる日数を超えています。経理にご相談ください。`);
+    return;
+  }
+  // 休みにする日（pickedOff）をお休みデータに登録
+  if(!REQ[pickedOff]) REQ[pickedOff] = [];
+  if(!REQ[pickedOff].includes(me)) REQ[pickedOff].push(me);
+  saveReq();
+  // 振替希望なら、出勤する日（pickedFrom）を振替出勤データに登録（何人でもOK・青）
+  if(appType==='振替希望' && pickedFrom){
+    if(!WORK[pickedFrom]) WORK[pickedFrom] = [];
+    if(!WORK[pickedFrom].includes(me)) WORK[pickedFrom].push(me);
+    saveWork();
+  }
+  // 有給を消費する種別なら残日数を減らす（本番は「承認時」に減算）
+  let balMsg = '';
+  if(consumes(appType)){
+    BAL[me] = balOf(me) - unitDays(); saveBal();
+    balMsg = `<br>有給残りは <b>${BAL[me]}日</b> になりました（${leaveUnit}）。
+      <span style="font-size:12px;color:#9aa;">※本番では承認された時点で減ります。</span>`;
+  }
+  const detail = (appType==='振替希望')
+    ? `<b>${fmtDate(pickedFrom)}に出勤</b>し、<b>${fmtDate(pickedOff)}をお休み</b>（振替）`
+    : `<b>${fmtDate(pickedOff)}</b>の<b>${appType}</b>`;
+  document.getElementById('doneMsg').innerHTML =
+    `${me}さんの${detail}を受け付けました。<br>
+     承認者に通知が届きます。承認されるとお知らせします。${balMsg}<br>
+     <span style="font-size:12px;color:#9aa;">※これは試作デモです。実際の通知・承認はLINE WORKS連携時に動きます。</span>`;
+  show('s4');
+}
+
+/* ---------- 管理者：残日数の編集 ---------- */
+function openAdmin(){
+  const b = document.getElementById('adminBody');
+  b.innerHTML = NAMES.map(n=>
+    `<div class="adminrow"><img src="${IMG(n)}"><span class="an">${n}</span>
+     <input type="number" step="0.5" min="0" value="${balOf(n)}" data-n="${n}"><span class="unit">日</span></div>`
+  ).join('');
+  show('s6');
+}
+function saveAdmin(){
+  document.querySelectorAll('#adminBody input').forEach(inp=>{
+    BAL[inp.dataset.n] = parseFloat(inp.value)||0;
+  });
+  saveBal(); renderGrid();
+  alert('保存しました。各社員の残日数を更新しました。');
+  gohome();
+}
+function reset(){
+  me=null; pickedOff=null; pickedFrom=null;
+  document.getElementById('q').value='';
+  document.getElementById('reason').value='';
+  renderGrid(); gohome();
+}
+
+renderTiles();
+renderGrid();
+</script>
+</body>
+</html>
