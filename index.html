@@ -414,13 +414,17 @@ function sendToBackend(data){
     });
   }catch(e){ /* 通信できなくても画面は進める */ }
 }
-// LINE WORKS内で開かれた時はWOFFでログイン→合言葉ゲートを自動解除。通常ブラウザでは無視。
+// 申請者本人のLINE WORKS userId（結果通知の宛先。LINE WORKS内で開いた時だけ入る）
+let myWoffUserId = '';
+// LINE WORKS内で開かれた時はWOFFでログイン→合言葉ゲートを自動解除＋申請者IDを取得。通常ブラウザでは無視。
 (function initWoff(){
   if(typeof woff === 'undefined') return;
   try{
     woff.init({ woffId: WOFF_ID }).then(function(){
       sessionStorage.setItem('gateOK','1');
       var g = document.getElementById('gate'); if(g) g.classList.add('hide');
+      // 申請者本人のuserIdを取得（承認結果を本人に通知するため）
+      woff.getProfile().then(function(p){ myWoffUserId = (p && p.userId) || ''; }).catch(function(){});
     }).catch(function(){});
   }catch(e){}
 })();
@@ -854,7 +858,8 @@ function submit(){
     dateOff: pickedOff || '',
     dateFrom: (appType==='振替希望' ? (pickedFrom || '') : ''),
     unit: leaveUnit,
-    reason: document.getElementById('reason').value.trim()
+    reason: document.getElementById('reason').value.trim(),
+    applicantId: myWoffUserId
   });
   const detail = (appType==='振替希望')
     ? `<b>${fmtDate(pickedFrom)}に出勤</b>し、<b>${fmtDate(pickedOff)}をお休み</b>（振替）`
